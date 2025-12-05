@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Admin Dashboard</h1>
+            <div class="user-info">
+                <span>Welcome, {{ name }}!</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </header>
+        
+        <main>
+            <div class="dashboard-content">
+                <h2>Examination Management System</h2>
+                <p>You are logged in as an administrator. Manage students, exams, and results.</p>
+                
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <h3>{{ student_count }}</h3>
+                        <p>Registered Students</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>{{ admin_count }}</h3>
+                        <p>Administrators</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>0</h3>
+                        <p>Active Exams</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>0</h3>
+                        <p>Pending Results</p>
+                    </div>
+                </div>
+                
+                <div class="admin-options">
+                    <div class="option-card">
+                        <h3>Manage Students</h3>
+                        <p>Add, edit, or remove student accounts</p>
+                        <button class="btn-primary">Manage Students</button>
+                    </div>
+                    
+                    <div class="option-card">
+                        <h3>Manage Exams</h3>
+                        <p>Create and configure examinations</p>
+                        <button class="btn-primary">Create Exam</button>
+                    </div>
+                    
+                    <div class="option-card">
+                        <h3>View Results</h3>
+                        <p>Monitor and analyze exam results</p>
+                        <button class="btn-primary">View Results</button>
+                    </div>
+                    
+                    <div class="option-card">
+                        <h3>System Settings</h3>
+                        <p>Configure system parameters</p>
+                        <button class="btn-primary">Settings</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

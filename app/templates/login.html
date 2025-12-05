@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Portal Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h2>Exam Portal Login</h2>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="user_type">Login as:</label>
+                    <select id="user_type" name="user_type" required>
+                        <option value="">Select User Type</option>
+                        <option value="student">Student</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                
+                <input type="hidden" id="screen_resolution" name="screen_resolution">
+                
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+            
+            <script>
+                // Set screen resolution when page loads
+                document.getElementById('screen_resolution').value = screen.width + 'x' + screen.height;
+                
+                // Submit form with additional security data
+                document.getElementById('loginForm').addEventListener('submit', function(e) {
+                    // Add any additional security measures here if needed
+                });
+            </script>
+            
+            <div class="login-info">
+                <h3>Default Login Credentials:</h3>
+                <p><strong>Student:</strong> student1 / student123 or student2 / student123</p>
+                <p><strong>Admin:</strong> admin / admin123</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
