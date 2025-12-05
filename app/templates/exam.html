@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam - CBT Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        .exam-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .timer {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: #e74c3c;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        .question-card {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .question-number {
+            background-color: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .option-input {
+            margin-right: 10px;
+        }
+        .progress-container {
+            margin: 20px 0;
+        }
+        .warning-banner {
+            background-color: #f39c12;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="exam-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>CBT Platform - Exam</h1>
+                <div>
+                    <span class="me-3">Welcome, {{ name }}!</span>
+                    <span class="timer" id="timer">--:--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="warning-banner">
+            ⚠️ Please do not refresh the page, close the browser, or navigate away during the exam. 
+            Your exam session is being monitored for security.
+        </div>
+
+        <div class="progress-container">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" id="progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="text-center mt-2">
+                Question <span id="current-question">1</span> of {{ questions|length }}
+            </div>
+        </div>
+
+        <form id="exam-form">
+            {% for question in questions %}
+                <div class="question-card" data-question-id="{{ question.id }}" style="{% if loop.index != 1 %}display: none;{% endif %}">
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="question-number">{{ loop.index }}</span>
+                        <h4 class="mb-0">{{ question.question }}</h4>
+                    </div>
+                    
+                    {% if question.type == 'multiple_choice' %}
+                        {% for option in question.options %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="{{ option }}" id="q{{ question.id }}_{{ loop.index }}">
+                                <label class="form-check-label" for="q{{ question.id }}_{{ loop.index }}">
+                                    {{ option }}
+                                </label>
+                            </div>
+                        {% endfor %}
+                    {% elif question.type == 'text_answer' %}
+                        <div class="mb-3">
+                            <input type="text" class="form-control" name="question_{{ question.id }}" placeholder="Enter your answer here...">
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between">
+                        {% if loop.index > 1 %}
+                            <button type="button" class="btn btn-secondary" onclick="showQuestion({{ loop.index - 1 }})">Previous</button>
+                        {% else %}
+                            <div></div> <!-- Empty div for alignment -->
+                        {% endif %}
+                        
+                        {% if loop.index < questions|length %}
+                            <button type="button" class="btn btn-primary" onclick="showQuestion({{ loop.index + 1 }})">Next</button>
+                        {% else %}
+                            <button type="button" class="btn btn-success" onclick="submitExam()">Submit Exam</button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentQuestion = 1;
+        const totalQuestions = {{ questions|length }};
+        const examSessionId = "{{ exam_session_id }}";
+        let startTime = new Date().getTime();
+        
+        // Anti-cheat monitoring
+        let mouseMovements = [];
+        let keyboardEvents = [];
+        
+        // Record mouse movements
+        document.addEventListener('mousemove', function(e) {
+            mouseMovements.push({
+                x: e.clientX,
+                y: e.clientY,
+                time: Date.now()
+            });
+            
+            // Keep only the last 50 movements
+            if (mouseMovements.length > 50) {
+                mouseMovements.shift();
+            }
+        });
+        
+        // Record keyboard events
+        document.addEventListener('keydown', function(e) {
+            keyboardEvents.push({
+                key: e.key,
+                time: Date.now()
+            });
+            
+            // Keep only the last 25 events
+            if (keyboardEvents.length > 25) {
+                keyboardEvents.shift();
+            }
+        });
+        
+        // Prevent common cheating methods
+        document.addEventListener('keydown', function(e) {
+            // Prevent F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+J
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+                (e.ctrlKey && e.key === 'u')) {
+                e.preventDefault();
+                alert('Developer tools are disabled during the exam for security reasons.');
+                return false;
+            }
+        });
+        
+        // Prevent right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            alert('Right-click is disabled during the exam for security reasons.');
+            return false;
+        });
+        
+        // Prevent tab switching detection
+        let hidden, visibilityChange;
+        if (typeof document.hidden !== "undefined") {
+            hidden = "hidden";
+            visibilityChange = "visibilitychange";
+        } else if (typeof document.msHidden !== "undefined") {
+            hidden = "msHidden";
+            visibilityChange = "msvisibilitychange";
+        } else if (typeof document.webkitHidden !== "undefined") {
+            hidden = "webkitHidden";
+            visibilityChange = "webkitvisibilitychange";
+        }
+        
+        function handleVisibilityChange() {
+            if (document[hidden]) {
+                // Tab was switched away - log as potential violation
+                fetch('/monitor_activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        client_timestamp: Date.now() / 1000,
+                        mouse_movements: [],
+                        keyboard_events: [{key: 'tab_switch', time: Date.now()}],
+                        violation_type: 'tab_switch'
+                    })
+                });
+            }
+        }
+        
+        if (typeof document.addEventListener === "undefined" || hidden === undefined) {
+            console.log("Page Visibility API is not supported in this browser");
+        } else {
+            document.addEventListener(visibilityChange, handleVisibilityChange, false);
+        }
+        
+        // Update progress bar
+        function updateProgress() {
+            const progress = (currentQuestion / totalQuestions) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+            document.getElementById('current-question').textContent = currentQuestion;
+        }
+        
+        // Show specific question
+        function showQuestion(questionNum) {
+            // Hide all questions
+            const questions = document.querySelectorAll('.question-card');
+            questions.forEach(q => q.style.display = 'none');
+            
+            // Show the requested question
+            document.querySelector(`[data-question-id="${questionNum}"]`).style.display = 'block';
+            
+            currentQuestion = questionNum;
+            updateProgress();
+        }
+        
+        // Submit answer to server
+        function submitAnswer(questionId, answer) {
+            // Sign the data using our secure communication protocol
+            const dataToSign = {
+                exam_session_id: examSessionId,
+                question_id: questionId,
+                answer: answer
+            };
+            
+            fetch('/submit_answer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    data: dataToSign,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    signature: generateSignature(dataToSign)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error submitting answer:', data.error);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+        
+        // Simple signature generation for demo (in production, use proper HMAC)
+        function generateSignature(data) {
+            // This is a simplified version - in production, use the secure_comm module
+            return btoa(JSON.stringify(data)).substring(0, 16);
+        }
+        
+        // Collect and submit all answers when exam is submitted
+        function submitExam() {
+            // Submit all answers
+            const form = document.getElementById('exam-form');
+            const formData = new FormData(form);
+            
+            for (let [name, value] of formData.entries()) {
+                if (name.startsWith('question_')) {
+                    const questionId = name.split('_')[1];
+                    submitAnswer(questionId, value);
+                }
+            }
+            
+            // End the exam session
+            fetch(`/end_exam/${examSessionId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Exam submitted successfully!');
+                    window.location.href = '{{ url_for('student_dashboard') }}';
+                }
+            })
+            .catch(error => {
+                console.error('Error ending exam:', error);
+                alert('Exam submitted successfully!');
+                window.location.href = '{{ url_for('student_dashboard') }}';
+            });
+        }
+        
+        // Update timer
+        function updateTimer() {
+            fetch(`/get_time_remaining/${examSessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Timer error:', data.error);
+                    document.getElementById('timer').textContent = 'EXPIRED';
+                    // Disable form when time is up
+                    document.getElementById('exam-form').querySelectorAll('input, button').forEach(el => {
+                        el.disabled = true;
+                    });
+                    submitExam();
+                    return;
+                }
+                
+                const minutes = data.minutes.toString().padStart(2, '0');
+                const seconds = data.seconds.toString().padStart(2, '0');
+                document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+                
+                // Change color when time is running low
+                if (data.minutes <= 5) {
+                    document.getElementById('timer').style.backgroundColor = '#c0392b';
+                } else if (data.minutes <= 10) {
+                    document.getElementById('timer').style.backgroundColor = '#f39c12';
+                } else {
+                    document.getElementById('timer').style.backgroundColor = '#e74c3c';
+                }
+            })
+            .catch(error => {
+                console.error('Error getting time:', error);
+            });
+        }
+        
+        // Initialize
+        updateProgress();
+        updateTimer();
+        setInterval(updateTimer, 1000); // Update timer every second
+        
+        // Send activity data to server periodically
+        setInterval(function() {
+            if (mouseMovements.length > 0 || keyboardEvents.length > 0) {
+                fetch('/monitor_activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        client_timestamp: Date.now() / 1000,
+                        mouse_movements: mouseMovements,
+                        keyboard_events: keyboardEvents
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.violations && data.violations.length > 0) {
+                        console.log('Potential violations detected:', data.violations);
+                    }
+                })
+                .catch(error => console.error('Error sending activity data:', error));
+                
+                // Clear the arrays after sending
+                mouseMovements = [];
+                keyboardEvents = [];
+            }
+        }, 3000); // Send every 3 seconds during exam
+    </script>
+</body>
+</html>

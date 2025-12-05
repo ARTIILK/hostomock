@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Student Dashboard</h1>
+            <div class="user-info">
+                <span>Welcome, {{ name }}!</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </header>
+        
+        <main>
+            <div class="dashboard-content">
+                <h2>Examination Portal</h2>
+                <p>You are logged in as a student. Here you can access your examinations and view results.</p>
+                
+                <div class="student-options">
+                    <div class="option-card">
+                        <h3>Available Exams</h3>
+                        <p>View and take available examinations</p>
+                        <button class="btn-primary">View Exams</button>
+                    </div>
+                    
+                    <div class="option-card">
+                        <h3>Exam Results</h3>
+                        <p>Check your past exam results</p>
+                        <button class="btn-primary">View Results</button>
+                    </div>
+                    
+                    <div class="option-card">
+                        <h3>Profile</h3>
+                        <p>Update your profile information</p>
+                        <button class="btn-primary">Manage Profile</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
